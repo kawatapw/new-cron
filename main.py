@@ -17,7 +17,14 @@ async def connect() -> None:
     await db.connect(config.sql)
 
     global redis
-    redis = await aioredis.create_redis_pool("redis://localhost:6379/0")
+
+    redisurl = "redis://:{password}@{host}/{db}".format(
+      password=config.redis_pass,
+      host=config.redis_host,
+      db=config.redis_db
+    )
+
+    redis = await aioredis.create_redis_pool(redisurl)
 
     print("Connected to database and redis")
 
