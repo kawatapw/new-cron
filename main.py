@@ -48,20 +48,21 @@ async def recalc_ranks() -> None:
             redis_board = "leaderboard"
             modes = ("std", "taiko", "ctb", "mania")
         elif rx == 1:
-            stats_table = "rx_stats"
-            redis_board = "relaxboard"
+            stats_table = "users_stats_relax"
+            redis_board = "leaderboard_relax"
             modes = ("std", "taiko", "ctb")
-        else:  # rx == 2:
-            stats_table = "ap_stats"
-            redis_board = "autoboard"
-            modes = ("std",)
+        # else:  # rx == 2:
+        #     stats_table = "ap_stats"
+        #     redis_board = "autoboard"
+        #     modes = ("std",)
 
         for mode in modes:
             users = await db.fetchall(
                 f"select users.id, stats.pp_{mode} pp, "
-                "stats.country, users.latest_activity, users.privileges "
+                "stats2.country, users.latest_activity, users.privileges "
                 "from users "
                 f"left join {stats_table} stats on stats.id = users.id "
+                f"left join users_stats stats2 on stats2.id = users.id "
                 f"where stats.pp_{mode} > 0"
             )
 
@@ -163,7 +164,7 @@ async def update_total_submitted_score_counts() -> None:
         """
         SELECT AUTO_INCREMENT
           FROM INFORMATION_SCHEMA.TABLES
-         WHERE TABLE_SCHEMA = 'akatsuki'
+         WHERE TABLE_SCHEMA = 'ripple'
            AND TABLE_NAME = 'scores'
       ORDER BY AUTO_INCREMENT DESC
         """
@@ -174,42 +175,6 @@ async def update_total_submitted_score_counts() -> None:
     await redis.set(
         "ripple:submitted_scores",
         magnitude_fmt(row["AUTO_INCREMENT"] - 500_000_000),
-    )
-
-    # scores_relax
-    row = await db.fetch(
-        """
-        SELECT AUTO_INCREMENT
-          FROM INFORMATION_SCHEMA.TABLES
-         WHERE TABLE_SCHEMA = 'akatsuki'
-           AND TABLE_NAME = 'scores_relax'
-      ORDER BY AUTO_INCREMENT DESC
-        """
-    )
-    if row is None:
-        raise Exception("Couldn't fetch auto_increment for scores_relax")
-
-    await redis.set(
-        "ripple:submitted_scores_relax",
-        magnitude_fmt(row["AUTO_INCREMENT"]),
-    )
-
-    # scores_ap
-    row = await db.fetch(
-        """
-        SELECT AUTO_INCREMENT
-          FROM INFORMATION_SCHEMA.TABLES
-         WHERE TABLE_SCHEMA = 'akatsuki'
-           AND TABLE_NAME = 'scores_ap'
-      ORDER BY AUTO_INCREMENT DESC
-        """
-    )
-    if row is None:
-        raise Exception("Couldn't fetch auto_increment for scores_ap")
-
-    await redis.set(
-        "ripple:submitted_scores_ap",
-        magnitude_fmt(row["AUTO_INCREMENT"] - 6_148_914_691_236_517_204),
     )
 
     print(
@@ -244,7 +209,7 @@ async def freeze_expired_freeze_timers() -> None:
 
         await redis.publish("peppy:ban", user["id"])
 
-        for board in ("leaderboard", "relaxboard"):
+        for board in ("leaderboard", "leaderboard_relax"):
             await redis.zrem(f"ripple:{board}:*:*", user["id"])
 
         await db.execute(
@@ -273,7 +238,7 @@ async def clear_scores() -> None:
 
     start_time = int(time.time())
 
-    for table in ("scores", "scores_relax"):
+    for table in ("scores"):
         await db.execute(
             f"delete from {table} where completed < 3 and time < UNIX_TIMESTAMP(NOW() - INTERVAL 24 HOUR)"
         )
@@ -291,7 +256,7 @@ async def main() -> None:
     await recalc_ranks()
     await fix_supporter_badges()
     await update_total_submitted_score_counts()
-    await freeze_expired_freeze_timers()
+    # await freeze_expired_freeze_timers()
     # await clear_scores() # disabled as of 2022-07-19
 
     await disconnect()
