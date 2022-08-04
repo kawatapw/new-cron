@@ -245,6 +245,20 @@ async def clear_scores() -> None:
 
     print(f"Deleted all clearable scores in {time.time() - start_time:.2f} seconds")
 
+async def update_total_users() -> None:
+    print("Counting registered users")
+
+    start_time = int(time.time())
+
+    users = await db.fetchall(
+        "SELECT id FROM users;"
+    )
+
+    userscount = (len(users))
+
+    await redis.set("ripple:registered_users", userscount)
+
+    print(f"Counted {userscount} users in {time.time() - start_time:.2f} seconds")
 
 async def main() -> None:
     print("Starting Akatsuki cron")
@@ -256,6 +270,7 @@ async def main() -> None:
     await recalc_ranks()
     await fix_supporter_badges()
     await update_total_submitted_score_counts()
+    await update_total_users()
     # await freeze_expired_freeze_timers()
     # await clear_scores() # disabled as of 2022-07-19
 
