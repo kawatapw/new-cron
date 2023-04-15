@@ -222,7 +222,7 @@ async def freeze_expired_freeze_timers() -> None:
         embed = Embed(color=0x542CB8)
 
         embed.add_field(name="** **", value=f"{user['username']} {FREEZE_MESSAGE}")
-        embed.set_footer(text="Akatsuki Anticheat")
+        embed.set_footer(text="Kawata Anticheat KEKW")
         embed.set_thumbnail(url="https://akatsuki.pw/static/logos/logo.png")
 
         webhook.add_embed(embed)
@@ -261,7 +261,7 @@ async def update_total_users() -> None:
     print(f"Counted {userscount} users in {time.time() - start_time:.2f} seconds")
 
 async def main() -> None:
-    print("Starting Akatsuki cron")
+    print("Starting Kawata cron")
 
     start_time = int(time.time())
 

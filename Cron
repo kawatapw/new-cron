@@ -1,0 +1,10 @@
+#!/bin/bash
+
+while true; do
+    python3.9 main.py
+    echo "|"
+    echo "|"
+    echo "|"
+    echo "|"
+    sleep 300
+done
