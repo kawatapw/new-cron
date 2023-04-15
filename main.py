@@ -1,4 +1,11 @@
 #!/usr/bin/env python3.9
+import ddtrace
+#ddtrace.patch_all()
+from ddtrace.profiling import Profiler
+#Profiler().start()
+from typing import Any
+from typing import cast
+
 from cmyui.mysql import AsyncSQLPool
 from cmyui.discord import Webhook, Embed
 from aiohttp import ClientSession
@@ -36,6 +43,13 @@ async def disconnect() -> None:
     await redis.wait_closed()
 
     print("Disconnected from database and redis")
+    
+STR_TO_INT_MODE = {
+    "std": 0,
+    "taiko": 1,
+    "ctb": 2,
+    "mania": 3
+}
 
 
 async def recalc_ranks() -> None:
@@ -45,10 +59,12 @@ async def recalc_ranks() -> None:
     for rx in (0, 1, 2):
         if rx == 0:
             stats_table = "users_stats"
+            scores_table = "scores"
             redis_board = "leaderboard"
             modes = ("std", "taiko", "ctb", "mania")
         elif rx == 1:
             stats_table = "users_stats_relax"
+            scores_table = "scores"
             redis_board = "leaderboard_relax"
             modes = ("std", "taiko", "ctb")
         # else:  # rx == 2:
@@ -58,13 +74,14 @@ async def recalc_ranks() -> None:
 
         for mode in modes:
             users = await db.fetchall(
-                f"select users.id, stats.pp_{mode} pp, "
+                f"SELECT users.id, stats.pp_{mode} pp, "
                 "stats2.country, users.latest_activity, users.privileges "
-                "from users "
-                f"left join {stats_table} stats on stats.id = users.id "
-                f"left join users_stats stats2 on stats2.id = users.id "
-                f"where stats.pp_{mode} > 0"
+                "FROM users "
+                f"LEFT JOIN {stats_table} stats on stats.id = users.id "
+                f"LEFT JOIN users_stats stats2 on stats2.id = users.id "
+                f"WHERE stats.pp_{mode} > 0"
             )
+            users = cast(list[dict[str, Any]], users)
 
             for user in users:
                 # TODO: rather than using users.latest_activity, this should actually
